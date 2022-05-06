@@ -1,0 +1,255 @@
+<template>
+    <template if:false={isLoading}>
+        <div class="slds-box slds-theme_default">
+            <div style="text-align: center; margin-bottom:1%;">
+                <lightning-button label="New" onclick={openEditDialog}>
+                </lightning-button>
+                <template if:false={isProcessRunning}>
+                    <lightning-button label="Schedule Process" onclick={openRunDialog}></lightning-button>
+                </template>
+                <template if:true={isProcessRunning}>
+                    <lightning-button label="Abort Process" onclick={abortProcessRun}></lightning-button>
+                </template>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Approval Process</th>
+                        <th>Related Object</th>
+                        <th>Note</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <template for:each={reminderList} for:item="proc">
+                        <tr key={proc.remId}>
+                            <td>
+                                {proc.remName}
+                            </td>
+                            <td>
+                                <c-rem-layout-item
+                                    item-api="related_Approval_Process" 
+                                    item-value={proc.related_Approval_Process} 
+                                    item-type="lookup" 
+                                    is-read-only="true"
+                                    object-api-name="ProcessDefinition"
+                                    icon-name="utility:automate"
+                                    display-field="Name"
+                                    display-field-in-search="Name,DeveloperName"
+                                    class="slds-form__item slds-no-space">
+                                </c-rem-layout-item>
+                            </td>
+                            <td>
+                                {proc.related_Object_Label}
+                            </td>
+                            <td>
+                                {proc.note}
+                            </td>
+                            <td>
+                                <lightning-button label="Edit" onclick={openEditDialog} data-recid={proc.remId}>
+                                </lightning-button>
+
+                                <lightning-button label="Delete" onclick={deleteReminder} data-recid={proc.remId}>
+                                </lightning-button>
+
+                                <template if:false={proc.active}>
+                                    <lightning-button onclick={setActivateProc} label="Activate" data-recid={proc.remId} data-act="true">
+                                    </lightning-button>
+                                </template>
+
+                                <template if:true={proc.active}>
+                                    <lightning-button onclick={setActivateProc} label="Deactivate" data-recid={proc.remId} data-act="false">
+                                    </lightning-button>
+                                </template>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <template if:true={showEditDialog}>
+            <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__content slds-var-p-around_medium">
+                        <table>
+                            <tr>
+                                <td style="width: 50%;">
+                                    <c-rem-layout-item
+                                        item-label="Approval Process" 
+                                        item-api="related_Approval_Process" 
+                                        item-value={reminderInDialog.related_Approval_Process} 
+                                        item-type="lookup" 
+                                        object-api-name="ProcessDefinition"
+                                        icon-name="utility:automate"
+                                        display-field="Name"
+                                        display-field-in-search="Name,DeveloperName"
+                                        oninputvaluechange={reminderPropertyChange} 
+                                        class="slds-form__item slds-no-space">
+                                    </c-rem-layout-item>
+                                    
+                                </td>
+                                <td style="width: 50%;">
+                                    <c-rem-layout-item 
+                                        item-label="Business Hours" 
+                                        item-api="business_Hours" 
+                                        item-value={reminderInDialog.business_Hours} 
+                                        item-type="lookup" 
+                                        object-api-name="BusinessHours"
+                                        icon-name="standard:business_hours"
+                                        display-field="Name"
+                                        display-field-in-search="Name,IsActive"
+                                        oninputvaluechange={reminderPropertyChange} 
+                                        help-text="Business hours reference that will be used for time calculations." 
+                                        class="slds-form__item slds-no-space">
+                                    </c-rem-layout-item>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width: 50%;">
+                                    <c-rem-layout-item
+                                        item-label="Name" 
+                                        item-api="Name" 
+                                        item-value={reminderInDialog.remName} 
+                                        is-editable="true" 
+                                        item-type="text" 
+                                        oninputvaluechange={reminderPropertyChange} 
+                                        class="slds-form__item slds-no-space">
+                                    </c-rem-layout-item>
+                                </td>
+
+                                <td style="width: 50%;">
+                                    <c-rem-layout-item
+                                        item-label="Recurring Every (H)" 
+                                        item-api="recurring_Every_H" 
+                                        item-value={reminderInDialog.recurring_Every_H} 
+                                        is-editable="true" 
+                                        item-type="number" 
+                                        oninputvaluechange={reminderPropertyChange} 
+                                        help-text="Alert will be send every X hours."
+                                        class="slds-form__item slds-no-space">
+                                    </c-rem-layout-item>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td style="width: 50%;">
+                                    <c-rem-layout-item
+                                        item-label="Start Reminder After (H)" 
+                                        item-api="start_Reminder_After_H" 
+                                        item-value={reminderInDialog.start_Reminder_After_H} 
+                                        is-editable="true" 
+                                        item-type="number" 
+                                        oninputvaluechange={reminderPropertyChange} 
+                                        help-text="Start sending alerts after x hours that the approval is pending."
+                                        class="slds-form__item slds-no-space">
+                                    </c-rem-layout-item>
+                                </td>
+
+                                <td style="width: 50%;">
+                                    <c-rem-layout-item 
+                                        item-label="Stop Recurrence After" 
+                                        item-api="stop_Recurrence_After" 
+                                        item-value={reminderInDialog.stop_Recurrence_After} 
+                                        is-editable="true" 
+                                        item-type="number" 
+                                        oninputvaluechange={reminderPropertyChange} 
+                                        help-text="Stop recurrence after x alerts (leave 0 to no stop)."
+                                        class="slds-form__item slds-no-space">
+                                    </c-rem-layout-item>
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <br/>
+                        <lightning-icon icon-name="utility:add" onclick={addRecipiant} alternative-text="Add Recipiant" title="Add Recipiant" variant="success" size="small" style="cursor: pointer;"></lightning-icon>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Recipiant Type</th>
+                                    <th>User</th>
+                                    <th>Notify From Alert #</th>
+                                    <th>Delete</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <template for:each={recipiantsList} for:item="recItem">
+                                    <tr key={recItem.recipiantIndex}>
+                                        <td>
+                                            <lightning-combobox value={recItem.recipiantType} onchange={recipiantTypeAdded} data-recipiant-index={recItem.recipiantIndex} options={recipiantTypeOptions} class="slds-var-m-bottom_small input-zero-margin">
+                                            </lightning-combobox>
+                                        </td>
+                                        <td class="rem-table-cell-bottom">
+                                            <template if:true={recItem.isUser}>
+                                                <c-custom-search-records
+                                                    obj-name="User"
+                                                    icon-name="utility:user"
+                                                    fields="Name"
+                                                    display-fields="Name,Email"
+                                                    value-id={recItem.recipiant}
+                                                    onlookup={userRecipiantSelected}
+                                                    data-recipiant-index={recItem.recipiantIndex}
+                                                    current-record-id={recItem.recipiant}>
+                                                </c-custom-search-records>
+                                            </template>
+                                        
+                                            <template if:true={recItem.isUserField}>
+                                                <lightning-combobox value={recItem.recipiant} onchange={fieldRecipiantSelected} data-recipiant-index={recItem.recipiantIndex} options={userFieldsOptions}>
+                                                </lightning-combobox>
+                                            </template>                    
+                                        </td>
+                                        <td class="rem-table-cell-bottom">
+                                            <c-rem-layout-item
+                                                item-api="fromLevel" 
+                                                item-value={recItem.fromLevel} 
+                                                is-editable="true" 
+                                                item-type="number" 
+                                                oninputvaluechange={recipiantLevelAdded} 
+                                                class="slds-form__item slds-no-space">
+                                            </c-rem-layout-item>
+                                        </td>
+                                        <td>
+                                            <lightning-icon icon-name="utility:delete" onclick={deleteRecipiant} data-recipiant-index={recItem.recipiantIndex} alternative-text="Delete" title="Delete" variant="error" size="small" style="cursor: pointer;"></lightning-icon>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+
+                        <div style="margin-top: 25%;">
+
+                        </div>
+                    </div>
+                    <footer class="slds-modal__footer grey-background"> 
+                        <lightning-button label="Close" onclick={closeEditDialog} class="slds-m-right_x-small"></lightning-button>
+                        <lightning-button label="Save" onclick={saveEditDialog}></lightning-button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open" id="backdropEditId"></div>
+        </template>
+
+        
+        <template if:true={showRunDialog}>
+            <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__content slds-var-p-around_medium">
+                        <lightning-input label="Interval (Minutes)" type="number" value={processInterval} min="10" onchange={inervalAdded}>
+                        </lightning-input>
+                    </div>
+                    <footer class="slds-modal__footer grey-background">    
+                        <lightning-button onclick={closeRunDialog} label="Cancel" variant="netrual" class="slds-m-right_x-small"></lightning-button>
+                        <lightning-button onclick={runReminderSchedule} label="Run" variant="netrual"></lightning-button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open" id="backdropRunProcessDalog"></div>
+        </template>
+    </template>
+
+    <lightning-spinner if:true={isLoading} alternative-text="Loading" size="large"></lightning-spinner>
+</template>

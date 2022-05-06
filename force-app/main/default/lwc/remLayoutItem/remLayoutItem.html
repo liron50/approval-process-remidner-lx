@@ -1,0 +1,102 @@
+<template>
+    <div class="slds-grid slds-size_1-of-1 label-stacked text-align-left">
+        <div class="slds-form-element slds-hint-parent test-id__output-root slds-form-element_edit" style="width: 100%; flex-basis: 100%;">
+            <template if:true={itemLabel}>
+                <div class="test-id__field-label-container slds-form-element__label no-utility-icon">
+                    <template if:true={isEditable}>
+                        <template if:true={isRequired}>
+                            <abbr title="required" class="slds-required">*</abbr>
+                        </template>
+                    </template>
+                    <span class="test-id__field-label">{itemLabel}</span>
+                    <template if:true={helpText}>
+                        <div class="slds-form-element__icon">
+                            <lightning-helptext content={helpText}></lightning-helptext>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            <div class="slds-form-element__control">
+                <span class="test-id__field-value slds-form-element__static slds-grow word-break-ie11">
+                    <template if:true={isStandardInput}>
+                        <template if:false={isEditable}>
+                            <template if:true={showText}>
+                                <lightning-formatted-text value={itemValue}></lightning-formatted-text>
+                            </template>
+                            <template if:true={showCombobox}>
+                                <lightning-combobox value={itemValue} options={comboboxOptions} disabled="true" variant="label-hidden">
+                                </lightning-combobox>
+                            </template>
+                            <template if:true={showNumber}>
+                                <lightning-formatted-number value={itemValue}></lightning-formatted-number>
+                            </template>
+                            <template if:true={showDatetime}>
+                                <lightning-formatted-date-time value={itemValue} year="numeric" month="2-digit" day="numeric" hour="numeric" minute="numeric" hour12="false" time-zone="UTC">
+                                </lightning-formatted-date-time>
+                            </template>
+                            <template if:true={showDate}>
+                                <lightning-formatted-date-time value={itemValue} year="numeric" month="2-digit" day="numeric">
+                                </lightning-formatted-date-time>
+                            </template>
+                            <template if:true={showCheckbox}>
+                                <lightning-input type="checkbox" checked={itemValue} disabled="true">
+                                </lightning-input>
+                            </template>
+                        </template>
+
+                        <template if:true={isEditable}>
+                            <template if:true={showTextInput}>
+                                <lightning-input type={itemType} value={itemValue} onchange={valueChangeEvent} required={isRequired} variant="label-hidden"></lightning-input>
+                            </template>
+
+                            <template if:true={showCheckboxInput}>
+                                <lightning-input type="checkbox" checked={itemValue} onchange={valueChangeEvent} variant="label-hidden">
+                                </lightning-input>
+                            </template>
+
+                            <template if:true={showTextAreaInput}>
+                                <lightning-textarea value={itemValue} onchange={valueChangeEvent} required={isRequired} variant="label-hidden">
+                                </lightning-textarea>
+                            </template>
+
+                            <template if:true={showComboboxInput}>
+                                <lightning-combobox value={itemValue} onchange={valueChangeEvent} options={comboboxOptions} required={isRequired} variant="label-hidden">
+                                </lightning-combobox>
+                            </template>
+                        </template>
+                    </template>
+
+                    <template if:true={isRichText}>
+                        <lightning-input-rich-text value={itemValue} onchange={valueChangeEvent} required={isRequired} disabled-categories={disabledCategories} disabled={isReadOnly}>
+                        </lightning-input-rich-text>
+                    </template>
+
+                    <template if:true={isLookup}>
+                        <c-custom-search-records
+                            obj-name={objectApiName}
+                            icon-name={iconName}
+                            fields={displayField}
+                            display-fields={displayFieldInSearch}
+                            value-id={itemValue}
+                            onlookup={lookupAdded}
+                            current-record-id={itemValue} 
+                            is-read-only={isReadOnly}>
+                        </c-custom-search-records>
+                    </template>
+
+                    <template if:true={isDualListbox}>
+                        <lightning-dual-listbox
+                            source-label="Available"
+                            selected-label="Selected"
+                            options={comboboxOptions}
+                            onchange={valueChangeEvent}
+                            value={itemValue}
+                            size={duelListboxSize}
+                            disabled={isReadOnly}>
+                        </lightning-dual-listbox>
+                    </template>
+                </span>
+            </div>
+        </div>
+    </div>
+</template>

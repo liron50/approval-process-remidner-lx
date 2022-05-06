@@ -1,0 +1,9 @@
+.rem-table-cell-top{
+    vertical-align: top !important;
+}
+.rem-table-cell-bottom{
+    vertical-align: bottom !important;
+}
+.input-zero-margin{
+    margin: 0 !important;
+}
