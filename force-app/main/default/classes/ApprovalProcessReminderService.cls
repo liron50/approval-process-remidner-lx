@@ -71,55 +71,59 @@ public with sharing class ApprovalProcessReminderService {
                     //Per each pending approver
                     for (ProcessItemWrp pihw : piw.workItems) {
                         
-                        //Calculate the hours difference from time processinstance was created until now
-                        Decimal pendingHours = reminderSetup.Business_Hours__c == null ? 
-                                        (Double) ((system.now().getTime() - pihw.createdDate.getTime()))/1000/60/60 :
-                                        (Double) BusinessHours.diff(reminderSetup.Business_Hours__c, pihw.createdDate, system.now())/1000/60/60;
+                        //Only users supported for reminders
+                        if(pihw.actorId.getSobjectType().getDescribe().getName() == 'User'){
 
-                        mba_services__Log_Message__c newLog = new mba_services__Log_Message__c(
-                            mba_services__Log_Level__c = 'Info', 
-                            mba_services__Log_Type__c = 'Process', 
-                            mba_services__Subject__c = 'Approval Process Reminder', 
-                            mba_services__Message_Email__c = 'Note that the following record is pending for approval for more than: ' + pendingHours.setScale(2) + ' hours. <br/>' + System.URL.getSalesforceBaseUrl().toExternalForm() + '/' + piw.targetObjectId);
-                            
-                        system.debug('###pendingHours:' + pendingHours);
-                        
-                        //If target object id inside the map, means alert was already sent for this record before
-                        if(keyAPRMap.containsKey(piw.targetObjectId + '_' + piw.processId + '_' + pihw.actorId)){
-                            
-                            if(reminderSetup.Stop_Recurrence_After__c == 0 ||
-                                keyAPRMap.get(piw.targetObjectId + '_' + piw.processId + '_' + pihw.actorId).Alerts_Sent__c < reminderSetup.Stop_Recurrence_After__c){
-                                //calculate if hours that approval is pending divded by the alerts that were sent is greater than current number of alerts
-                                //If criteria aply - means it time to send another reminder
-                                if(math.Floor(pendingHours/reminderSetup.Recurring_Every_H__c) > keyAPRMap.get(piw.targetObjectId + '_' + piw.processId + '_' + pihw.actorId).Alerts_Sent__c){
-                                    
-                                    //Increase the Alert Send by 1
-                                    keyAPRMap.get(piw.targetObjectId + '_' + piw.processId + '_' + pihw.actorId).Alerts_Sent__c ++;
-                                    
-                                    keyAPRMap.get(piw.targetObjectId + '_' + piw.processId + '_' + pihw.actorId).Pending_Hours__c = pendingHours;
+                            //Calculate the hours difference from time processinstance was created until now
+                            Decimal pendingHours = reminderSetup.Business_Hours__c == null ? 
+                                            (Double) ((system.now().getTime() - pihw.createdDate.getTime()))/1000/60/60 :
+                                            (Double) BusinessHours.diff(reminderSetup.Business_Hours__c, pihw.createdDate, system.now())/1000/60/60;
 
-                                    newLogList.addAll(getAlerts(newLog, recipiantList, approversMap.get(pihw.actorId), relatedRecordMap.get(piw.targetObjectId), Integer.valueOf(keyAPRMap.get(piw.targetObjectId + '_' + piw.processId + '_' + pihw.ActorId).Alerts_Sent__c)));
-                                }    
-                            }
-
-                            //This will be used later. Need to know which Approval Process Records was increased. Other
-                            //records will be updated with Status = 'Approved'
-                            increasedAPRIdSet.add(keyAPRMap.get(piw.targetObjectId + '_' + piw.processId + '_' + pihw.actorId).id);
-                        }
-                        else{   //No previous alert was sent for this record
-                            
-                            //Pending hour is more than the setup, should send first alert
-                            if(pendingHours > reminderSetup.Start_Reminder_After_H__c){ 
-                                newLogList.addAll(getAlerts(newLog, recipiantList, approversMap.get(pihw.actorId), relatedRecordMap.get(piw.targetObjectId), 1));
+                            mba_services__Log_Message__c newLog = new mba_services__Log_Message__c(
+                                mba_services__Log_Level__c = 'Info', 
+                                mba_services__Log_Type__c = 'Process', 
+                                mba_services__Subject__c = 'Approval Process Reminder', 
+                                mba_services__Message_Email__c = 'Note that the following ' + reminderSetup.Related_Object_Label__c + ' is pending approval for more than: ' + pendingHours.setScale(2) + ' hours. <br/>' + System.URL.getSalesforceBaseUrl().toExternalForm() + '/' + piw.targetObjectId);
                                 
-                                //Add new Approval Process Record        
-                                newAPRList.add(new Approval_Process_Record__c(  Approval_Process_Reminder__c = reminderSetup.id,
-                                                                                Status__c = 'Pending', 
-                                                                                Record_Id__c = piw.targetObjectId, 
-                                                                                ProcessInstance_Id__c = piw.processId, 
-                                                                                Alerts_Sent__c = 1,
-                                                                                Pending_Hours__c = pendingHours,
-                                                                                Approver__c = pihw.actorId));
+                            system.debug('###pendingHours:' + pendingHours);
+                            
+                            //If target object id inside the map, means alert was already sent for this record before
+                            if(keyAPRMap.containsKey(piw.targetObjectId + '_' + piw.processId + '_' + pihw.actorId)){
+                                
+                                if(reminderSetup.Stop_Recurrence_After__c == 0 ||
+                                    keyAPRMap.get(piw.targetObjectId + '_' + piw.processId + '_' + pihw.actorId).Alerts_Sent__c < reminderSetup.Stop_Recurrence_After__c){
+                                    //calculate if hours that approval is pending divded by the alerts that were sent is greater than current number of alerts
+                                    //If criteria aply - means it time to send another reminder
+                                    if(math.Floor(pendingHours/reminderSetup.Recurring_Every_H__c) > keyAPRMap.get(piw.targetObjectId + '_' + piw.processId + '_' + pihw.actorId).Alerts_Sent__c){
+                                        
+                                        //Increase the Alert Send by 1
+                                        keyAPRMap.get(piw.targetObjectId + '_' + piw.processId + '_' + pihw.actorId).Alerts_Sent__c ++;
+                                        
+                                        keyAPRMap.get(piw.targetObjectId + '_' + piw.processId + '_' + pihw.actorId).Pending_Hours__c = pendingHours;
+
+                                        newLogList.addAll(getAlerts(newLog, recipiantList, approversMap.get(pihw.actorId), relatedRecordMap.get(piw.targetObjectId), Integer.valueOf(keyAPRMap.get(piw.targetObjectId + '_' + piw.processId + '_' + pihw.ActorId).Alerts_Sent__c)));
+                                    }    
+                                }
+
+                                //This will be used later. Need to know which Approval Process Records was increased. Other
+                                //records will be updated with Status = 'Approved'
+                                increasedAPRIdSet.add(keyAPRMap.get(piw.targetObjectId + '_' + piw.processId + '_' + pihw.actorId).id);
+                            }
+                            else{   //No previous alert was sent for this record
+                                
+                                //Pending hour is more than the setup, should send first alert
+                                if(pendingHours > reminderSetup.Start_Reminder_After_H__c){ 
+                                    newLogList.addAll(getAlerts(newLog, recipiantList, approversMap.get(pihw.actorId), relatedRecordMap.get(piw.targetObjectId), 1));
+                                    
+                                    //Add new Approval Process Record        
+                                    newAPRList.add(new Approval_Process_Record__c(  Approval_Process_Reminder__c = reminderSetup.id,
+                                                                                    Status__c = 'Pending', 
+                                                                                    Record_Id__c = piw.targetObjectId, 
+                                                                                    ProcessInstance_Id__c = piw.processId, 
+                                                                                    Alerts_Sent__c = 1,
+                                                                                    Pending_Hours__c = pendingHours,
+                                                                                    Approver__c = pihw.actorId));
+                                }
                             }
                         }
                     }
